@@ -36,19 +36,20 @@ def plot_results_multiple(predicted_data, true_data, prediction_len):
 def main():
     configs = json.load(open('config.json', 'r'))
     if not os.path.exists(configs['model']['save_dir']): os.makedirs(configs['model']['save_dir'])
-
+    # saved_models dir for saving models
     data = DataLoader(
-        os.path.join('data', configs['data']['filename']),
-        configs['data']['train_test_split'],
-        configs['data']['columns']
+        os.path.join('data', configs['data']['filename']),   # filename for input data - SP500
+        configs['data']['train_test_split'],                 # 0.85 split
+        configs['data']['columns']                           # columns
     )
 
-    model = Model()
+    model = Model()   # init -> self.model = Sequential()
     model.build_model(configs)
     x, y = data.get_train_data(
-        seq_len=configs['data']['sequence_length'],
-        normalise=configs['data']['normalise']
+        seq_len=configs['data']['sequence_length'],       # sequence length 50
+        normalise=configs['data']['normalise']            # normalize = true
     )
+
 
     '''
 	# in-memory training
@@ -64,27 +65,30 @@ def main():
     steps_per_epoch = math.ceil((data.len_train - configs['data']['sequence_length']) / configs['training']['batch_size'])
     model.train_generator(
         data_gen=data.generate_train_batch(
-            seq_len=configs['data']['sequence_length'],
-            batch_size=configs['training']['batch_size'],
-            normalise=configs['data']['normalise']
+            seq_len=configs['data']['sequence_length'], # 50
+            batch_size=configs['training']['batch_size'], # 32
+            normalise=configs['data']['normalise']        # true
         ),
-        epochs=configs['training']['epochs'],
-        batch_size=configs['training']['batch_size'],
-        steps_per_epoch=steps_per_epoch,
-        save_dir=configs['model']['save_dir']
+        epochs=configs['training']['epochs'],            # 2
+        batch_size=configs['training']['batch_size'],    #32
+        steps_per_epoch=steps_per_epoch,                 # 124
+        save_dir=configs['model']['save_dir']            # /saved_models
     )
 
     x_test, y_test = data.get_test_data(
-        seq_len=configs['data']['sequence_length'],
-        normalise=configs['data']['normalise']
+        seq_len=configs['data']['sequence_length'],      #50
+        normalise=configs['data']['normalise']          # true
     )
+    #print("x_test: " , x_test)
+    #print("y_test: " , y_test)
+    #predictions = model.predict_sequences_multiple(x_test, configs['data']['sequence_length'], configs['data']['sequence_length'])
+    #predictions = model.predict_sequence_full(x_test, configs['data']['sequence_length'])
+    print("Before predictions - x_test:", x_test)
 
-    predictions = model.predict_sequences_multiple(x_test, configs['data']['sequence_length'], configs['data']['sequence_length'])
-    # predictions = model.predict_sequence_full(x_test, configs['data']['sequence_length'])
-    # predictions = model.predict_point_by_point(x_test)
-
-    plot_results_multiple(predictions, y_test, configs['data']['sequence_length'])
-    # plot_results(predictions, y_test)
+    predictions = model.predict_point_by_point(x_test)
+    print("Predictions: ", predictions)
+    #plot_results_multiple(predictions, y_test, configs['data']['sequence_length'])
+    plot_results(predictions, y_test)
 
 
 if __name__ == '__main__':
