@@ -6,13 +6,16 @@ class DataLoader():
     """A class for loading and transforming data for the lstm model"""
 
     def __init__(self, filename, split, cols):
-        dataframe = pd.read_csv(filename)
-        i_split = int(len(dataframe) * split)
-        self.data_train = dataframe.get(cols).values[:i_split]
-        self.data_test  = dataframe.get(cols).values[i_split:]
-        self.len_train  = len(self.data_train)
-        self.len_test   = len(self.data_test)
+        dataframe = pd.read_csv(filename)       # SP500
+        i_split = int(len(dataframe) * split)   # split 0.85
+        self.data_train = dataframe.get(cols).values[:i_split]   # data until 0.85
+        self.data_test  = dataframe.get(cols).values[i_split:]   # data after 0.85
+        self.len_train  = len(self.data_train)                   # length of train data
+        self.len_test   = len(self.data_test)                    # length of test data
         self.len_train_windows = None
+        print(self.data_train)
+        print("Len train: ", self.len_train)
+        print("Len test: ", self.len_test)
 
     def get_test_data(self, seq_len, normalise):
         '''
@@ -26,12 +29,12 @@ class DataLoader():
 
         data_windows = np.array(data_windows).astype(float)
         data_windows = self.normalise_windows(data_windows, single_window=False) if normalise else data_windows
-
+        print("data windows: ", data_windows)
         x = data_windows[:, :-1]
         y = data_windows[:, -1, [0]]
         return x,y
 
-    def get_train_data(self, seq_len, normalise):
+    def get_train_data(self, seq_len, normalise):  # seq_len= 50 , normalise = true
         '''
         Create x, y train data windows
         Warning: batch method, not generative, make sure you have enough memory to
@@ -48,6 +51,7 @@ class DataLoader():
     def generate_train_batch(self, seq_len, batch_size, normalise):
         '''Yield a generator of training data from filename on given list of cols split for train/test'''
         i = 0
+        print("self.len_train: ", self.len_train)
         while i < (self.len_train - seq_len):
             x_batch = []
             y_batch = []
@@ -59,6 +63,8 @@ class DataLoader():
                 x, y = self._next_window(i, seq_len, normalise)
                 x_batch.append(x)
                 y_batch.append(y)
+                print("generate_train_batch x ", x)
+                print("generate_train_batch y ", y)
                 i += 1
             yield np.array(x_batch), np.array(y_batch)
 
@@ -76,8 +82,9 @@ class DataLoader():
         window_data = [window_data] if single_window else window_data
         for window in window_data:
             normalised_window = []
-            for col_i in range(window.shape[1]):
+            for col_i in range(window.shape[1]):     # for col_index in column_indexes
                 normalised_col = [((float(p) / float(window[0, col_i])) - 1) for p in window[:, col_i]]
+                #normalised_col = [p for p in window[:, col_i]] # if not normalised
                 normalised_window.append(normalised_col)
             normalised_window = np.array(normalised_window).T # reshape and transpose array back into original multidimensional format
             normalised_data.append(normalised_window)

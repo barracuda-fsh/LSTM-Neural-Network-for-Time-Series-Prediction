@@ -21,7 +21,33 @@ class Model():
 	def build_model(self, configs):
 		timer = Timer()
 		timer.start()
-
+		"""
+		"layers": 
+			
+				"type": "lstm",
+				"neurons": 100,
+				"input_timesteps": 49,
+				"input_dim": 2,
+				"return_seq": true
+			
+				"type": "dropout",
+				"rate": 0.2
+			
+				"type": "lstm",
+				"neurons": 100,
+				"return_seq": true
+			
+				"type": "lstm",
+				"neurons": 100,
+				"return_seq": false
+			
+				"type": "dropout",
+				"rate": 0.2
+			
+				"type": "dense",
+				"neurons": 1,
+				"activation": "linear"
+		"""
 		for layer in configs['model']['layers']:
 			neurons = layer['neurons'] if 'neurons' in layer else None
 			dropout_rate = layer['rate'] if 'rate' in layer else None
@@ -34,10 +60,12 @@ class Model():
 				self.model.add(Dense(neurons, activation=activation))
 			if layer['type'] == 'lstm':
 				self.model.add(LSTM(neurons, input_shape=(input_timesteps, input_dim), return_sequences=return_seq))
+				# neurons = 100, input_timesteps = 49, inpit_dim = 2, return_seq = true
 			if layer['type'] == 'dropout':
 				self.model.add(Dropout(dropout_rate))
 
 		self.model.compile(loss=configs['model']['loss'], optimizer=configs['model']['optimizer'])
+		#loss=mse   				optimizer=adam
 
 		print('[Model] Model Compiled')
 		timer.stop()
@@ -73,8 +101,10 @@ class Model():
 		
 		save_fname = os.path.join(save_dir, '%s-e%s.h5' % (dt.datetime.now().strftime('%d%m%Y-%H%M%S'), str(epochs)))
 		callbacks = [
+			#ModelCheckpoint(filepath=save_fname+".keras", monitor='loss', save_best_only=True)
 			ModelCheckpoint(filepath=save_fname, monitor='loss', save_best_only=True)
 		]
+		print ('data_gen: ', data_gen)
 		self.model.fit_generator(
 			data_gen,
 			steps_per_epoch=steps_per_epoch,
@@ -82,7 +112,15 @@ class Model():
 			callbacks=callbacks,
 			workers=1
 		)
-		
+		"""
+		self.model.fit(
+			data_gen,
+			steps_per_epoch=steps_per_epoch,
+			epochs=epochs,
+			callbacks=callbacks,
+			workers=1
+		)
+		"""
 		print('[Model] Training Completed. Model saved as %s' % save_fname)
 		timer.stop()
 
@@ -91,6 +129,7 @@ class Model():
 		print('[Model] Predicting Point-by-Point...')
 		predicted = self.model.predict(data)
 		predicted = np.reshape(predicted, (predicted.size,))
+
 		return predicted
 
 	def predict_sequences_multiple(self, data, window_size, prediction_len):
